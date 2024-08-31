@@ -7,7 +7,6 @@ import lscript.ClassWorkarounds;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
-import llua.Macro.*;
 
 class CustomConvert {
 	/**
