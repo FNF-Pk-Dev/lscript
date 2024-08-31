@@ -40,7 +40,7 @@ class CustomConvert {
 						final lastLua:LScript = LScript.currentLua;
 						LScript.currentLua = curLua;
 
-						Lua.settop(luaState, 0);
+						Lua.pop(luaState, 0);
 						Lua.rawgeti(luaState, Lua.LUA_REGISTRYINDEX, ref);
 				
 						if (!Lua.isfunction(luaState, -1))
@@ -62,7 +62,7 @@ class CustomConvert {
 
 						//Grabs and returns the result of the function.
 							final v = CustomConvert.fromLua(Lua.gettop(luaState));
-						Lua.settop(luaState, 0);
+						Lua.pop(luaState, 0);
 						LScript.currentLua = lastLua;
 						return v;
 					}
