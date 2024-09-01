@@ -31,10 +31,10 @@ class ClassWorkarounds {
 			returned = Type.createInstance(params[0], params[1]);
 		} catch(e) {
 			LuaL.error(LScript.currentLua.luaState, "Lua Instance Creation Error: " + e.details());
-			Lua.settop(LScript.currentLua.luaState, 0);
+			Lua.pop(LScript.currentLua.luaState, 0);
 			return 0;
 		}
-		Lua.settop(LScript.currentLua.luaState, 0);
+		Lua.pop(LScript.currentLua.luaState, 0);
 
 		if (returned != null) {
 			CustomConvert.toLua(returned);

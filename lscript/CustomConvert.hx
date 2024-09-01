@@ -31,7 +31,7 @@ class CustomConvert {
 			case Lua.LUA_TTABLE:
 				ret = toHaxeObj(stackPos);
 			case Lua.LUA_TFUNCTION:
-				if (Lua.tocfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
+				if (Lua.isfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
 					Lua.pushvalue(luaState, stackPos);
 					final ref = LuaL.ref(luaState, Lua.LUA_REGISTRYINDEX);
 

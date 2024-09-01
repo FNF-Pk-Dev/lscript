@@ -73,10 +73,10 @@ class MetatableFunctions {
 			returned = functions[funcNum](params[0], params[1], params[2]); //idk why im not using Reflect but this slightly more optimized so whatevs.
 		} catch(e) {
 			LuaL.error(state, "Lua Metatable Error: " + e.details());
-			Lua.settop(state, 0);
+			Lua.pop(state, 0);
 			return 0;
 		}
-		Lua.settop(state, 0);
+		Lua.pop(state, 0);
 
 		if (returned != null) {
 			CustomConvert.toLua(returned, funcNum < 2 ? specialIndex : -1);
