@@ -2,6 +2,7 @@ package lscript;
 
 import cpp.RawPointer;
 import lscript.LScript;
+import lscript.Macro.*;
 import lscript.ClassWorkarounds;
 
 import llua.Lua;
@@ -31,7 +32,7 @@ class CustomConvert {
 			case Lua.LUA_TTABLE:
 				ret = toHaxeObj(stackPos);
 			case Lua.LUA_TFUNCTION:
-				if (Lua.isfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
+				if (Lua._isfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
 					Lua.pushvalue(luaState, stackPos);
 					final ref = LuaL.ref(luaState, Lua.LUA_REGISTRYINDEX);
 
@@ -151,7 +152,7 @@ class CustomConvert {
 		var count = 0;
 		var array = true;
 
-		llua.Convert.loopTable(luaState, i, {
+		loopTable(luaState, i, {
 			if(array) {
 				if(Lua.type(luaState, -2) != Lua.LUA_TNUMBER) array = false;
 				else {
@@ -167,14 +168,14 @@ class CustomConvert {
 			{};
 		} else if(array) {
 			var v = [];
-			llua.Convert.loopTable(luaState, i, {
+			loopTable(luaState, i, {
 				var index = Std.int(Lua.tonumber(luaState, -2)) - 1;
 				v[index] = fromLua(-1);
 			});
 			cast v;
 		} else {
 			var v:haxe.DynamicAccess<Any> = {};
-			llua.Convert.loopTable(luaState, i, {
+			loopTable(luaState, i, {
 				switch Lua.type(luaState, -2) {
 					case t if(t == Lua.LUA_TSTRING): v.set(Lua.tostring(luaState, -2), fromLua(-1));
 					case t if(t == Lua.LUA_TNUMBER): v.set(Std.string(Lua.tonumber(luaState, -2)), fromLua(-1));
