@@ -35,8 +35,8 @@ class LScript {
 	public function new(scriptCode:String) {
 		luaState = LuaL.newstate();
 		LuaL.openlibs(luaState);
-		Lua.register_hxtrace_func(Callable.fromStaticFunction(scriptTrace));
-		Lua.register_hxtrace_lib(luaState);
+		//Lua.register_hxtrace_func(Callable.fromStaticFunction(scriptTrace));
+		//Lua.register_hxtrace_lib(luaState);
 
 		Lua.newtable(luaState);
 		final tableIndex = Lua.gettop(luaState); //The variable position of the table. Used for paring the metatable with this table.
@@ -146,7 +146,7 @@ class LScript {
 		final lastLua:LScript = currentLua;
 		currentLua = this;
 
-		Lua.settop(luaState, 0);
+		Lua.pop(luaState, 0);
 		Lua.getglobal(luaState, name); //Finds the function from the script.
 
 		if (!Lua.isfunction(luaState, -1))
@@ -168,7 +168,7 @@ class LScript {
 
 		//Grabs and returns the result of the function.
 		final v = CustomConvert.fromLua(Lua.gettop(luaState));
-		Lua.settop(luaState, 0);
+		Lua.pop(luaState, 0);
 		currentLua = lastLua;
 		return v;
 	}

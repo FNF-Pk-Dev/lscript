@@ -162,7 +162,7 @@ class CustomConvert {
 			count++;
 		});
 
-		return
+		return;
 		if(count == 0) {
 			{};
 		} else if(array) {
