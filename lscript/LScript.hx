@@ -110,7 +110,7 @@ class LScript {
 	}
 
 	public dynamic function parseError(err:String) {
-		trace("Lua code was unable to be parsed.\n" + err);
+		openfl.Lib.application.window.alert(err, "Lua code was unable to be parsed.\n");
 	}
 
 	static inline function scriptTrace(s:String):Int {
