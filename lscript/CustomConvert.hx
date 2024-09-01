@@ -32,7 +32,7 @@ class CustomConvert {
 			case Lua.LUA_TTABLE:
 				ret = toHaxeObj(stackPos);
 			case Lua.LUA_TFUNCTION:
-				if (Lua._isfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
+				if (Lua.tointeger(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
 					Lua.pushvalue(luaState, stackPos);
 					final ref = LuaL.ref(luaState, Lua.LUA_REGISTRYINDEX);
 
@@ -163,7 +163,7 @@ class CustomConvert {
 			count++;
 		});
 
-		return;
+		return
 		if(count == 0) {
 			{};
 		} else if(array) {
