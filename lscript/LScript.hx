@@ -5,6 +5,7 @@ import lscript.*;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
+import hxluajit.Lua as NewLua;
 
 import cpp.Callable;
 
@@ -125,7 +126,7 @@ class LScript {
 
 		Lua.getglobal(luaState, name);
 		toReturn = CustomConvert.fromLua(-1);
-		Lua.pop(luaState, 1);
+		NewLua.settop(luaState, 1);
 
 		currentLua = lastLua;
 
@@ -146,7 +147,7 @@ class LScript {
 		final lastLua:LScript = currentLua;
 		currentLua = this;
 
-		Lua.pop(luaState, 0);
+		NewLua.settop(luaState, 0);
 		Lua.getglobal(luaState, name); //Finds the function from the script.
 
 		if (!Lua.isfunction(luaState, -1))
@@ -168,7 +169,7 @@ class LScript {
 
 		//Grabs and returns the result of the function.
 		final v = CustomConvert.fromLua(Lua.gettop(luaState));
-		Lua.pop(luaState, 0);
+		NewLua.settop(luaState, 0);
 		currentLua = lastLua;
 		return v;
 	}

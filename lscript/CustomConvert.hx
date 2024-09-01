@@ -8,6 +8,7 @@ import lscript.ClassWorkarounds;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
+import hxluajit.Lua as NewLua;
 
 class CustomConvert {
 	/**
@@ -32,7 +33,7 @@ class CustomConvert {
 			case Lua.LUA_TTABLE:
 				ret = toHaxeObj(stackPos);
 			case Lua.LUA_TFUNCTION:
-				if (Lua.type(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
+				if (NewLua.tocfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
 					Lua.pushvalue(luaState, stackPos);
 					final ref = LuaL.ref(luaState, Lua.LUA_REGISTRYINDEX);
 
@@ -40,7 +41,7 @@ class CustomConvert {
 						final lastLua:LScript = LScript.currentLua;
 						LScript.currentLua = curLua;
 
-						Lua.pop(luaState, 0);
+						NewLua.settop(luaState, 0);
 						Lua.rawgeti(luaState, Lua.LUA_REGISTRYINDEX, ref);
 				
 						if (!Lua.isfunction(luaState, -1))
@@ -62,7 +63,7 @@ class CustomConvert {
 
 						//Grabs and returns the result of the function.
 							final v = CustomConvert.fromLua(Lua.gettop(luaState));
-						Lua.pop(luaState, 0);
+						NewLua.settop(luaState, 0);
 						LScript.currentLua = lastLua;
 						return v;
 					}

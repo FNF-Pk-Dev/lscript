@@ -6,6 +6,7 @@ import lscript.CustomConvert;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
+import hxluajit.Lua as NewLua;
 
 import cpp.RawPointer;
 import cpp.Callable;
@@ -73,10 +74,10 @@ class MetatableFunctions {
 			returned = functions[funcNum](params[0], params[1], params[2]); //idk why im not using Reflect but this slightly more optimized so whatevs.
 		} catch(e) {
 			LuaL.error(state, "Lua Metatable Error: " + e.details());
-			Lua.pop(state, 0);
+			NewLua.settop(state, 0);
 			return 0;
 		}
-		Lua.pop(state, 0);
+		NewLua.settop(state, 0);
 
 		if (returned != null) {
 			CustomConvert.toLua(returned, funcNum < 2 ? specialIndex : -1);

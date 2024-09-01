@@ -6,6 +6,7 @@ import lscript.CustomConvert;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
+import hxluajit.Lua as NewLua;
 
 import cpp.Callable;
 
@@ -31,10 +32,10 @@ class ClassWorkarounds {
 			returned = Type.createInstance(params[0], params[1]);
 		} catch(e) {
 			LuaL.error(LScript.currentLua.luaState, "Lua Instance Creation Error: " + e.details());
-			Lua.pop(LScript.currentLua.luaState, 0);
+			NewLua.settop(LScript.currentLua.luaState, 0);
 			return 0;
 		}
-		Lua.pop(LScript.currentLua.luaState, 0);
+		NewLua.settop(LScript.currentLua.luaState, 0);
 
 		if (returned != null) {
 			CustomConvert.toLua(returned);
