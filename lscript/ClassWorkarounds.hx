@@ -6,7 +6,6 @@ import lscript.CustomConvert;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
-import hxluajit.Lua as NewLua;
 
 import cpp.Callable;
 
@@ -32,10 +31,10 @@ class ClassWorkarounds {
 			returned = Type.createInstance(params[0], params[1]);
 		} catch(e) {
 			LuaL.error(LScript.currentLua.luaState, "Lua Instance Creation Error: " + e.details());
-			NewLua.settop(LScript.currentLua.luaState, 0);
+			Lua.settop(LScript.currentLua.luaState, 0);
 			return 0;
 		}
-		NewLua.settop(LScript.currentLua.luaState, 0);
+		Lua.settop(LScript.currentLua.luaState, 0);
 
 		if (returned != null) {
 			CustomConvert.toLua(returned);
@@ -71,7 +70,7 @@ class ClassWorkarounds {
 			
 			Lua.setglobal(luaState, trimmedName);
 		} else {
-			Sys.println('${LScript.currentLua.tracePrefix}Lua Import Error: Unable to find class from path "$path".');
+			openfl.Lib.application.window.alert('${LScript.currentLua.tracePrefix}Lua Import Error: Unable to find class from path "$path".');
 		}
 	}
 }
