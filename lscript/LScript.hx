@@ -5,7 +5,6 @@ import lscript.*;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
-import hxluajit.Lua as NewLua;
 
 import cpp.Callable;
 
@@ -89,7 +88,7 @@ class LScript {
 		Lua.setmetatable(luaState, scriptTableIndex);
 
 		//Adding a suffix to the end of the lua file to attach a metatable to the global vars. (So you cant have to do `script.parent.this`)
-		toParse = scriptCode + '\n\nsetmetatable(_G, {
+		toParse = scriptCode + '\nsetmetatable(_G, {
 			__newindex = function (notUsed, name, value)
 				__scriptMetatable.__newindex(script.parent, name, value)
 			end,
@@ -148,7 +147,7 @@ class LScript {
 		final lastLua:LScript = currentLua;
 		currentLua = this;
 
-		NewLua.settop(luaState, 0);
+		Lua.settop(luaState, 0);
 		Lua.getglobal(luaState, name); //Finds the function from the script.
 
 		if (!Lua.isfunction(luaState, -1))
@@ -164,13 +163,13 @@ class LScript {
 		
 		//Calls the function of the script. If it does not return 0, will trace what went wrong.
 		if (Lua.pcall(luaState, nparams, 1, 0) != 0) {
-			Sys.println(tracePrefix + 'Function("$name") Error: ${Lua.tostring(luaState, -1)}');
+			openfl.Lib.application.window.alert(tracePrefix, 'Function("$name") Error: ${Lua.tostring(luaState, -1)}');
 			return null;
 		}
 
 		//Grabs and returns the result of the function.
 		final v = CustomConvert.fromLua(Lua.gettop(luaState));
-		NewLua.settop(luaState, 0);
+		Lua.settop(luaState, 0);
 		currentLua = lastLua;
 		return v;
 	}
