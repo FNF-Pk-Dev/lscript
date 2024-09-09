@@ -126,7 +126,7 @@ class LScript {
 
 		Lua.getglobal(luaState, name);
 		toReturn = CustomConvert.fromLua(-1);
-		NewLua.settop(luaState, 1);
+		Lua.settop(luaState, 1);
 
 		currentLua = lastLua;
 
