@@ -103,8 +103,10 @@ class LScript {
 		final lastLua:LScript = currentLua;
 		currentLua = this;
 
-		if (LuaL.dostring(luaState, toParse) != 0)
+		if (LuaL.dostring(luaState, toParse) != 0){
 			parseError(Lua.tostring(luaState, -1));
+			luaState = null;
+		}
 
 		currentLua = lastLua;
 	}
