@@ -89,7 +89,7 @@ class LScript {
 		Lua.setmetatable(luaState, scriptTableIndex);
 
 		//Adding a suffix to the end of the lua file to attach a metatable to the global vars. (So you cant have to do `script.parent.this`)
-		toParse = scriptCode + '\nsetmetatable(_G, {
+		toParse = scriptCode + '\n\nsetmetatable(_G, {
 			__newindex = function (notUsed, name, value)
 				__scriptMetatable.__newindex(script.parent, name, value)
 			end,
