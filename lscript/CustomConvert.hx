@@ -8,7 +8,6 @@ import lscript.ClassWorkarounds;
 import llua.Lua;
 import llua.LuaL;
 import llua.State;
-import hxluajit.Lua as NewLua;
 
 class CustomConvert {
 	/**
@@ -33,7 +32,7 @@ class CustomConvert {
 			case Lua.LUA_TTABLE:
 				ret = toHaxeObj(stackPos);
 			case Lua.LUA_TFUNCTION:
-				if (NewLua.tocfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
+				if (Lua.tocfunction(luaState, stackPos) != ClassWorkarounds.workaroundCallable) {
 					Lua.pushvalue(luaState, stackPos);
 					final ref = LuaL.ref(luaState, Lua.LUA_REGISTRYINDEX);
 
@@ -41,7 +40,7 @@ class CustomConvert {
 						final lastLua:LScript = LScript.currentLua;
 						LScript.currentLua = curLua;
 
-						NewLua.settop(luaState, 0);
+						Lua.settop(luaState, 0);
 						Lua.rawgeti(luaState, Lua.LUA_REGISTRYINDEX, ref);
 				
 						if (!Lua.isfunction(luaState, -1))
@@ -57,13 +56,13 @@ class CustomConvert {
 						
 						//Calls the function of the script. If it does not return 0, will trace what went wrong.
 						if (Lua.pcall(luaState, nparams, 1, 0) != 0) {
-							Sys.println('${curLua.tracePrefix}Function(LOCAL) Error: ${Lua.tostring(luaState, -1)}');
+							openfl.Lib.application.window.alert('${curLua.tracePrefix}Function(LOCAL) Error: ${Lua.tostring(luaState, -1)}');
 							return null;
 						}
 
 						//Grabs and returns the result of the function.
-							final v = CustomConvert.fromLua(Lua.gettop(luaState));
-						NewLua.settop(luaState, 0);
+						final v = CustomConvert.fromLua(Lua.gettop(luaState));
+						Lua.settop(luaState, 0);
 						LScript.currentLua = lastLua;
 						return v;
 					}
@@ -72,7 +71,7 @@ class CustomConvert {
 				}
 			case idk:
 				ret = null;
-				Sys.println('${curLua.tracePrefix}Return value not supported: ${Std.string(idk)} - $stackPos');
+				openfl.Lib.application.window.alert('${curLua.tracePrefix}Return value not supported: ${Std.string(idk)} - $stackPos');
 		}
 
 		//This is to check if the object has a special field and converts it back if so.
