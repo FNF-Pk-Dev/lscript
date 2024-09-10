@@ -163,7 +163,7 @@ class LScript {
 		
 		//Calls the function of the script. If it does not return 0, will trace what went wrong.
 		if (Lua.pcall(luaState, nparams, 1, 0) != 0) {
-			openfl.Lib.application.window.alert(tracePrefix, 'Function("$name") Error: ${Lua.tostring(luaState, -1)}');
+			openfl.Lib.application.window.alert('Function("$name") Error: ${Lua.tostring(luaState, -1)}', tracePrefix);
 			return null;
 		}
 
