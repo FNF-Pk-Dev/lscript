@@ -1,0 +1,14 @@
+{
+	"name": "lscript",
+	"url" : "https://github.com/Roblox/luau",
+	"license": "MIT",
+	"tags": ["haxe", "luau", "lua", "scripting"],
+	"description": "Modern Lua scripting with Luau VM - Object-oriented Lua with Haxe integration",
+	"version": "1.0.0",
+	"classPath": "",
+	"releasenote": "Full Luau integration with Haxe",
+	"contributors": ["Luau Team", "linc_luajit Contributors"],
+	"dependencies": {
+		"linc_luajit": ""
+	}
+}
