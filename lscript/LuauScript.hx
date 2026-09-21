@@ -1,231 +1,148 @@
 package lscript;
 
-import llua.Lua;
-import llua.LuaL;
-import llua.State;
-import llua.LuaOpen;
-import llua.LuaCallback;
-import llua.Convert;
+import lscript.LScript;
 
-using StringTools;
+import llua.State;
 
 /**
- * Luau Script Manager - Modern Lua runtime with type annotations and performance optimizations
- * 
- * Features:
- * - Full Luau VM integration with type checking support
- * - Built-in Lua libraries (math, string, table, os, io)
- * - Global function registration from Haxe
- * - Script lifecycle management (create, update, destroy)
- * - Error handling with detailed stack traces
- * 
- * Example Lua usage:
- * ```lua
- * -- Luau supports type annotations (optional)
- * local myVar: string = "test"
- * 
- * -- Built-in libraries
- * print(math.sqrt(16))  -- 4
- * print(string.upper("hello"))  -- HELLO
- * 
- * -- Callback to Haxe
- * setProperty("variable", 123)
- * ```
+ * Convenience wrapper around `LScript` for callers that only want "a Luau state I can register
+ * functions on and run a chunk with".
+ *
+ * It used to be a second, independent implementation that built its own VM state and wrapped Haxe
+ * callbacks in `llua.LuaCallback` objects - but never pushed those before `Lua.setglobal()`, so its
+ * `registerFunction()` stored whatever happened to be on the stack and calling it from Lua went
+ * through a null function pointer. It now delegates to `LScript`, which owns the VM, the protected
+ * dispatch and the conversions, so this class inherits all of that.
+ *
+ * Like it used to, the state is opened with every standard library (`LScript`'s `unsafe` mode).
  */
-class LuauScript {
+class LuauScript
+{
 	public static var currentScript:LuauScript = null;
+
 	public static var GlobalFunctions:Map<String, Dynamic> = new Map<String, Dynamic>();
 
-	public var luaState:State;
+	/** The state of the script in this wrapper, `null` after `dispose()`. */
+	public var luaState(default, null):State;
 	public var scriptName:String = "luau_script";
 	public var scriptCode:String = "";
 	public var isRunning:Bool = false;
-	
-	private var callbacks:Map<String, LuaCallback> = new Map<String, LuaCallback>();
 
-	public function new(code:String, ?scriptName:String = "luau_script") {
-		this.scriptCode = code;
-		this.scriptName = scriptName;
-		
-		// Create new Luau state
-		luaState = LuaL.newstate();
-		
-		// Open standard Luau libraries
-		LuaOpen.base(luaState);
-		LuaOpen.math(luaState);
-		LuaOpen.string(luaState);
-		LuaOpen.table(luaState);
-		LuaOpen.os(luaState);
-		LuaOpen.io(luaState);
-		
+	/** The script doing the actual work. */
+	public var lscript(default, null):LScript;
+
+	/** Last error reported by the VM, if any. */
+	public var lastError:String = null;
+
+	public function new(code:String, ?scriptName:String = "luau_script")
+	{
+		this.scriptCode = (code != null) ? code : "";
+		this.scriptName = (scriptName != null) ? scriptName : "luau_script";
+
+		lscript = new LScript(this.scriptCode, true);
+		lscript.tracePrefix = '[$this.scriptName] ';
+		lscript.parseError = (err:String) ->
+		{
+			lastError = err;
+			trace('[$this.scriptName] $err');
+		};
+		lscript.functionError = (func:String, err:String) ->
+		{
+			lastError = err;
+			trace('[$this.scriptName] error in "$func": $err');
+		};
+
+		luaState = lscript.luaState;
 		currentScript = this;
 	}
 
-	/**
-	 * Register a Haxe function to be callable from Lua
-	 */
-	public function registerFunction(name:String, callback:Dynamic):Void {
-		if (callback == null) return;
-		
-		var luaCallback = new LuaCallback(callback);
-		callbacks.set(name, luaCallback);
-		
-		Lua.setglobal(luaState, name);
+	/** Registers a Haxe function the script can call by name. */
+	public function registerFunction(name:String, callback:Dynamic):Void
+	{
+		if (callback == null || name == null) return;
+
+		lscript.setVar(name, callback);
 		GlobalFunctions.set(name, callback);
 	}
 
-	/**
-	 * Register a nested function (e.g., "object.method")
-	 */
-	public function registerNestedFunction(path:String, callback:Dynamic):Void {
-		if (callback == null) return;
-		
-		var parts = path.split(".");
-		if (parts.length < 2) {
+	/** Registers a function at a nested path such as `"object.method"` or `"a.b.c"`. */
+	public function registerNestedFunction(path:String, callback:Dynamic):Void
+	{
+		if (callback == null || path == null) return;
+
+		final parts:Array<String> = path.split(".");
+		if (parts.length < 2)
+		{
 			registerFunction(path, callback);
 			return;
 		}
-		
-		// Create table if it doesn't exist
-		Lua.getglobal(luaState, parts[0]);
-		if (Lua.type(luaState, -1) != "table") {
-			Lua.pop(luaState, 1);
-			Lua.newtable(luaState);
-			Lua.setglobal(luaState, parts[0]);
+
+		// Built as Haxe maps and handed over in one go: the conversion turns each level into a real
+		// Lua table, and the innermost value (the callback) stays callable.
+		var nested:Dynamic = callback;
+		var position:Int = parts.length - 1;
+		while (position >= 1)
+		{
+			final holder:haxe.ds.StringMap<Dynamic> = new haxe.ds.StringMap<Dynamic>();
+			holder.set(parts[position], nested);
+			nested = holder;
+			position--;
 		}
-		
-		// Navigate to parent table
-		for (i in 1...parts.length - 1) {
-			Lua.getfield(luaState, -1, parts[i]);
-			if (Lua.type(luaState, -1) != "table") {
-				Lua.pop(luaState, 1);
-				Lua.newtable(luaState);
-				Lua.setfield(luaState, -2, parts[i]);
-			}
-		}
-		
-		// Set function
-		var luaCallback = new LuaCallback(callback);
-		callbacks.set(path, luaCallback);
-		Lua.setfield(luaState, -1, parts[parts.length - 1]);
-		Lua.pop(luaState, parts.length - 1);
+
+		lscript.setVar(parts[0], nested);
+		GlobalFunctions.set(path, callback);
 	}
 
-	/**
-	 * Execute the Lua script
-	 */
-	public function execute():Bool {
-		if (scriptCode == null || scriptCode.length == 0) {
-			trace('[$scriptName] No script code to execute');
-			return false;
-		}
-		
-		try {
-			var chunkName = '@$scriptName';
-			LuaL.loadstring(luaState, scriptCode, chunkName);
-			
-			var result = Lua.pcall(luaState, 0, Lua.LUA_MULTRET, 0);
-			if (result != 0) {
-				var error = Lua.tostring(luaState, -1);
-				trace('[$scriptName] Execution error: $error');
-				Lua.pop(luaState, 1);
-				return false;
-			}
-			
-			isRunning = true;
-			return true;
-		} catch (e:Dynamic) {
-			trace('[$scriptName] Exception: $e');
-			return false;
-		}
+	/** Runs the chunk. @return `false` when the VM reported a parse or runtime error. */
+	public function execute():Bool
+	{
+		if (lscript == null || lscript.closed) return false;
+
+		lastError = null;
+		lscript.execute();
+		isRunning = (lastError == null);
+		return isRunning;
 	}
 
-	/**
-	 * Call a Lua function from Haxe
-	 */
-	public function callFunction(name:String, ?args:Array<Dynamic>):Dynamic {
-		if (!isRunning) {
-			trace('[$scriptName] Script is not running');
+	/** Calls a global function of the script. */
+	public function callFunction(name:String, ?args:Array<Dynamic>):Dynamic
+	{
+		if (lscript == null || lscript.closed || !isRunning)
+		{
+			trace('[$this.scriptName] Script is not running');
 			return null;
 		}
-		
-		try {
-			Lua.getglobal(luaState, name);
-			
-			if (Lua.type(luaState, -1) != "function") {
-				Lua.pop(luaState, 1);
-				trace('[$scriptName] Function "$name" not found or not a function');
-				return null;
-			}
-			
-			if (args != null) {
-				for (arg in args) {
-					Convert.toLua(luaState, arg);
-				}
-			}
-			
-			var argc = (args != null) ? args.length : 0;
-			var result = Lua.pcall(luaState, argc, 1, 0);
-			
-			if (result != 0) {
-				var error = Lua.tostring(luaState, -1);
-				trace('[$scriptName] Call error: $error');
-				Lua.pop(luaState, 1);
-				return null;
-			}
-			
-			var returnValue = Convert.fromLua(luaState, -1);
-			Lua.pop(luaState, 1);
-			return returnValue;
-		} catch (e:Dynamic) {
-			trace('[$scriptName] Exception calling $name: $e');
-			return null;
-		}
+		return lscript.callFunc(name, args);
 	}
 
-	/**
-	 * Get a global Lua variable
-	 */
-	public function getVariable(name:String):Dynamic {
-		try {
-			Lua.getglobal(luaState, name);
-			var value = Convert.fromLua(luaState, -1);
-			Lua.pop(luaState, 1);
-			return value;
-		} catch (e:Dynamic) {
-			trace('[$scriptName] Error getting variable "$name": $e');
-			return null;
-		}
+	/** Reads a global of the script. */
+	public function getVariable(name:String):Dynamic
+	{
+		if (lscript == null || lscript.closed) return null;
+		return lscript.getVar(name);
 	}
 
-	/**
-	 * Set a global Lua variable
-	 */
-	public function setVariable(name:String, value:Dynamic):Void {
-		try {
-			Convert.toLua(luaState, value);
-			Lua.setglobal(luaState, name);
-		} catch (e:Dynamic) {
-			trace('[$scriptName] Error setting variable "$name": $e');
-		}
+	/** Sets a global of the script. */
+	public function setVariable(name:String, value:Dynamic):Void
+	{
+		if (lscript == null || lscript.closed) return;
+		lscript.setVar(name, value);
 	}
 
-	/**
-	 * Dispose the Lua state
-	 */
-	public function dispose():Void {
-		if (luaState != null) {
-			LuaL.close(luaState);
-			luaState = null;
-			isRunning = false;
-			callbacks.clear();
-		}
+	/** Closes the VM state; the wrapper cannot be used afterwards. */
+	public function dispose():Void
+	{
+		if (lscript != null && !lscript.closed) lscript.stop();
+
+		luaState = null;
+		isRunning = false;
+		GlobalFunctions.clear();
+		if (currentScript == this) currentScript = null;
 	}
 
-	/**
-	 * Get script status
-	 */
-	public function getStatus():String {
+	/** Short description of the wrapper, for logs. */
+	public function getStatus():String
+	{
 		return 'LuauScript: $scriptName - Running: $isRunning';
 	}
 }
